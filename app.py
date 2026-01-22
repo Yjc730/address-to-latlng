@@ -23,6 +23,17 @@ class BatchItem(BaseModel):
     status: str
     matched_name: Optional[str] = None
 
+MAX_ADDRESSES = 50
+
+@app.post("/api/geocode/batch", response_model=list[BatchItem])
+def geocode_batch(payload: BatchReq):
+    if len(payload.addresses) > MAX_ADDRESSES:
+        return [
+            BatchItem(
+                address="",
+                status=f"ERROR: 一次最多 {MAX_ADDRESSES} 筆地址"
+            )
+        ]
 
 @app.post("/api/geocode/batch", response_model=list[BatchItem])
 def geocode_batch(payload: BatchReq):
