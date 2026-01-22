@@ -4,128 +4,243 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>批次地址轉經緯度</title>
+
   <style>
     :root{
-      --bg:#0b1220;
-      --panel:rgba(15,23,42,.75);
-      --border:rgba(148,163,184,.25);
-      --text:#e5e7eb;
-      --muted:rgba(226,232,240,.7);
-      --accent:#22d3ee;
-      --ok:#34d399;
-      --bad:#f87171;
+      --bg:#f5f7fb;
+      --card:#ffffff;
+      --border:#e5e7eb;
+      --text:#0f172a;
+      --muted:#6b7280;
+      --accent:#2563eb;
+      --accent-soft:#eff6ff;
+      --ok:#16a34a;
+      --bad:#dc2626;
     }
+
+    *{box-sizing:border-box}
+
     body{
-      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, "Noto Sans TC", "Microsoft JhengHei";
-      background: radial-gradient(1200px 600px at 20% 10%, rgba(34,211,238,.12), transparent 55%),
-                  radial-gradient(900px 500px at 80% 20%, rgba(167,139,250,.10), transparent 55%),
-                  var(--bg);
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Noto Sans TC", "Microsoft JhengHei";
+      background: linear-gradient(180deg, #f8fafc, #eef2ff);
       color:var(--text);
     }
-    .wrap{max-width:1000px; margin:0 auto; padding:28px 18px 60px;}
+
+    .wrap{
+      max-width:1100px;
+      margin:0 auto;
+      padding:48px 20px 80px;
+    }
+
     .card{
-      background:var(--panel);
+      background:var(--card);
       border:1px solid var(--border);
-      border-radius:16px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.35);
-      padding:18px;
+      border-radius:20px;
+      box-shadow:0 20px 40px rgba(15,23,42,.08);
+      padding:36px;
     }
-    h1{margin:0 0 6px; font-size:22px;}
-    .sub{color:var(--muted); margin:0 0 16px; font-size:14px; line-height:1.5;}
-    textarea{
-      width:100%; min-height:160px; resize:vertical;
-      background:rgba(2,6,23,.5);
-      border:1px solid var(--border);
-      border-radius:12px;
-      padding:12px;
-      color:var(--text);
-      outline:none;
-      font-size:14px;
+
+    .card-inner{
+      max-width:860px;
+      margin:0 auto;
+    }
+
+    h1{
+      font-size:28px;
+      margin:0 0 10px;
+      letter-spacing:.2px;
+    }
+
+    .sub{
+      font-size:15px;
+      color:var(--muted);
       line-height:1.6;
+      margin-bottom:22px;
     }
-    .row{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; align-items:center;}
+
+    textarea{
+      width:100%;
+      min-height:120px;
+      resize:vertical;
+      background:#f9fafb;
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:14px 16px;
+      font-size:15px;
+      line-height:1.6;
+      outline:none;
+    }
+
+    textarea:focus{
+      border-color:var(--accent);
+      background:#ffffff;
+    }
+
+    /* actions */
+    .actions{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-top:18px;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .left-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
     button{
-      background: linear-gradient(135deg, rgba(34,211,238,.95), rgba(96,165,250,.95));
-      border:0; color:#001018;
-      padding:10px 14px;
-      border-radius:12px;
-      font-weight:700;
+      border-radius:999px;
+      padding:10px 18px;
+      font-size:14px;
+      font-weight:600;
       cursor:pointer;
+      border:1px solid transparent;
     }
+
+    #run{
+      background:var(--accent);
+      color:#fff;
+    }
+
+    #run:hover{opacity:.92}
+
     button.secondary{
-      background: transparent;
+      background:#ffffff;
       border:1px solid var(--border);
       color:var(--text);
-      font-weight:600;
     }
-    .pill{font-size:12px; color:var(--muted)}
-    .status{margin-left:auto; font-size:13px; color:var(--muted)}
+
+    button.secondary:hover{
+      background:var(--accent-soft);
+      border-color:#c7d2fe;
+    }
+
+    button:disabled{
+      opacity:.5;
+      cursor:not-allowed;
+    }
+
+    .right-status{
+      font-size:14px;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+
+    /* table */
     table{
       width:100%;
-      border-collapse: collapse;
-      margin-top:16px;
+      border-collapse:collapse;
+      margin-top:28px;
+      border-radius:14px;
       overflow:hidden;
-      border-radius:12px;
       border:1px solid var(--border);
     }
-    th, td{
-      padding:10px;
-      border-bottom:1px solid rgba(148,163,184,.16);
+
+    th,td{
+      padding:12px 14px;
+      border-bottom:1px solid var(--border);
+      font-size:14px;
+      text-align:left;
       vertical-align:top;
-      font-size:13px;
     }
-    th{background: rgba(2,6,23,.45); text-align:left; color:rgba(226,232,240,.85);}
-    tr:hover td{background: rgba(2,6,23,.25);}
-    .tag-ok{color:var(--ok); font-weight:700;}
-    .tag-bad{color:var(--bad); font-weight:700;}
-    .foot{margin-top:10px; color:var(--muted); font-size:12px;}
-    a{color:var(--accent); text-decoration:none}
+
+    th{
+      background:#f9fafb;
+      font-weight:600;
+      color:#334155;
+    }
+
+    tr:last-child td{border-bottom:none}
+
+    .tag-ok{
+      color:var(--ok);
+      font-weight:700;
+    }
+
+    .tag-bad{
+      color:var(--bad);
+      font-weight:700;
+    }
+
+    .foot{
+      margin-top:18px;
+      font-size:13px;
+      color:var(--muted);
+    }
+
+    .foot a{
+      color:var(--accent);
+      text-decoration:none;
+      font-weight:600;
+    }
+
+    .foot a:hover{text-decoration:underline}
+
+    @media (max-width:640px){
+      .card{padding:24px}
+      h1{font-size:24px}
+    }
   </style>
 </head>
+
 <body>
   <div class="wrap">
     <div class="card">
-      <h1>批次地址 → 經緯度轉換</h1>
-      <p class="sub">
-        每行一筆地址，按下「開始轉換」後會呼叫後端 API，結果以表格呈現，並可下載 CSV。<br/>
-        建議一次不要超過 50 筆（免費服務會限流）。
-      </p>
+      <div class="card-inner">
 
-      <textarea id="input" placeholder="例：&#10;台北市中正區羅斯福路四段1號&#10;新北市板橋區文化路一段188號&#10;高雄市前鎮區中山二路2號"></textarea>
+        <h1>批次地址 → 經緯度轉換</h1>
+        <p class="sub">
+          每行一筆地址，按下「開始轉換」後會呼叫後端 API，結果即時顯示於表格，並可下載 CSV。<br/>
+          建議一次不超過 50 筆（免費服務限流）。
+        </p>
 
-      <div class="row">
-        <button id="run">開始轉換</button>
-        <button class="secondary" id="demo">填入範例</button>
-        <button class="secondary" id="clear">清空</button>
-        <button class="secondary" id="download" disabled>下載 CSV</button>
-        <span class="status" id="status">待命</span>
-      </div>
+        <textarea id="input" placeholder="例：
+台北市中正區羅斯福路四段1號
+新北市板橋區文化路一段188號
+高雄市前鎮區中山二路2號"></textarea>
 
-      <table id="table" style="display:none">
-        <thead>
-          <tr>
-            <th style="width:36%">地址</th>
-            <th style="width:14%">緯度</th>
-            <th style="width:14%">經度</th>
-            <th style="width:16%">狀態</th>
-            <th style="width:20%">匹配結果</th>
-          </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
+        <div class="actions">
+          <div class="left-actions">
+            <button id="run">開始轉換</button>
+            <button class="secondary" id="demo">填入範例</button>
+            <button class="secondary" id="clear">清空</button>
+            <button class="secondary" id="download" disabled>下載 CSV</button>
+          </div>
+          <div class="right-status" id="status">待命</div>
+        </div>
 
-      <div class="foot">
-        資料來源：OpenStreetMap Nominatim｜
-        <a href="https://github.com/Yjc730/address-to-latlng-ui" target="_blank">
-          GitHub 專案
-        </a>
+        <table id="table" style="display:none">
+          <thead>
+            <tr>
+              <th style="width:36%">地址</th>
+              <th style="width:14%">緯度</th>
+              <th style="width:14%">經度</th>
+              <th style="width:16%">狀態</th>
+              <th style="width:20%">匹配結果</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+
+        <div class="foot">
+          資料來源：OpenStreetMap Nominatim｜
+          <a href="https://github.com/Yjc730/address-to-latlng-ui" target="_blank">
+            GitHub 專案
+          </a>
+        </div>
+
       </div>
     </div>
   </div>
 
+  <!-- JS 保持你原本的 -->
   <script>
     const $ = (id) => document.getElementById(id);
-
     let lastRows = [];
 
     function setStatus(text){ $("status").textContent = text; }
@@ -143,7 +258,7 @@
           escape(r.matched_name),
         ].join(","));
       }
-      return "\uFEFF" + lines.join("\n"); // UTF-8 BOM，Excel 友善
+      return "\uFEFF" + lines.join("\n");
     }
 
     function render(rows){
@@ -169,15 +284,13 @@
     async function run(){
       const lines = $("input").value.split("\n").map(s => s.trim()).filter(Boolean);
       if(lines.length === 0){
-        alert("請先輸入至少一筆地址（每行一筆）");
+        alert("請先輸入至少一筆地址");
         return;
       }
-
-   if (lines.length > 50) {
-    alert("一次最多轉換 50 筆地址");
-    return;
-    }
-
+      if(lines.length > 50){
+        alert("一次最多轉換 50 筆地址");
+        return;
+      }
 
       $("run").disabled = true;
       setStatus(`轉換中…（共 ${lines.length} 筆）`);
@@ -188,36 +301,32 @@
           headers: {"Content-Type":"application/json"},
           body: JSON.stringify({addresses: lines})
         });
-        if(!res.ok) throw new Error("API 回應失敗：" + res.status);
         const data = await res.json();
         render(data);
-
         const okCount = data.filter(x => x.status === "OK").length;
         setStatus(`完成：成功 ${okCount} / ${data.length}`);
       }catch(err){
         console.error(err);
         setStatus("發生錯誤，請看 Console");
-        alert("轉換失敗：請確認後端是否有啟動（uvicorn app:app）");
       }finally{
         $("run").disabled = false;
       }
     }
 
-    $("run").addEventListener("click", run);
-    $("demo").addEventListener("click", () => {
+    $("run").onclick = run;
+    $("demo").onclick = () => {
       $("input").value = [
         "台北市中正區羅斯福路四段1號",
         "新北市板橋區文化路一段188號",
         "高雄市前鎮區中山二路2號"
       ].join("\n");
-    });
-    $("clear").addEventListener("click", () => {
+    };
+    $("clear").onclick = () => {
       $("input").value = "";
       render([]);
       setStatus("待命");
-    });
-
-    $("download").addEventListener("click", () => {
+    };
+    $("download").onclick = () => {
       const csv = toCSV(lastRows);
       const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
       const url = URL.createObjectURL(blob);
@@ -226,7 +335,7 @@
       a.download = "address_latlng.csv";
       a.click();
       URL.revokeObjectURL(url);
-    });
+    };
   </script>
 </body>
 </html>
