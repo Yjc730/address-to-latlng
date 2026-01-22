@@ -1,5 +1,6 @@
 import time
 from typing import List, Optional
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -8,10 +9,10 @@ from geocoder import geocode_one
 
 app = FastAPI(title="Batch Address Geocoder")
 
-# 掛靜態 UI
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
-
+# =========================
+# Models
+# =========================
 class BatchReq(BaseModel):
     addresses: List[str] = Field(default_factory=list)
 
@@ -23,10 +24,19 @@ class BatchItem(BaseModel):
     status: str
     matched_name: Optional[str] = None
 
+
+# =========================
+# Config
+# =========================
 MAX_ADDRESSES = 50
 
+
+# =========================
+# API
+# =========================
 @app.post("/api/geocode/batch", response_model=list[BatchItem])
 def geocode_batch(payload: BatchReq):
+    # 🔒 後端保護：最多 50 筆
     if len(payload.addresses) > MAX_ADDRESSES:
         return [
             BatchItem(
@@ -35,8 +45,6 @@ def geocode_batch(payload: BatchReq):
             )
         ]
 
-@app.post("/api/geocode/batch", response_model=list[BatchItem])
-def geocode_batch(payload: BatchReq):
     results: List[BatchItem] = []
 
     for raw in payload.addresses:
@@ -65,7 +73,13 @@ def geocode_batch(payload: BatchReq):
                 status=f"ERROR: {type(e).__name__}"
             ))
 
-        # 避免被 API 封鎖（Nominatim 建議慢一點）
+        # ⏱️ 避免 Nominatim 封鎖
         time.sleep(1)
 
     return results
+
+
+# =========================
+# Static UI（一定要放最後）
+# =========================
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
