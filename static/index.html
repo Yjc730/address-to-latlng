@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>批次地址轉經緯度</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:rgba(15,23,42,.75);
+      --border:rgba(148,163,184,.25);
+      --text:#e5e7eb;
+      --muted:rgba(226,232,240,.7);
+      --accent:#22d3ee;
+      --ok:#34d399;
+      --bad:#f87171;
+    }
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, "Noto Sans TC", "Microsoft JhengHei";
+      background: radial-gradient(1200px 600px at 20% 10%, rgba(34,211,238,.12), transparent 55%),
+                  radial-gradient(900px 500px at 80% 20%, rgba(167,139,250,.10), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+    }
+    .wrap{max-width:1000px; margin:0 auto; padding:28px 18px 60px;}
+    .card{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.35);
+      padding:18px;
+    }
+    h1{margin:0 0 6px; font-size:22px;}
+    .sub{color:var(--muted); margin:0 0 16px; font-size:14px; line-height:1.5;}
+    textarea{
+      width:100%; min-height:160px; resize:vertical;
+      background:rgba(2,6,23,.5);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:12px;
+      color:var(--text);
+      outline:none;
+      font-size:14px;
+      line-height:1.6;
+    }
+    .row{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; align-items:center;}
+    button{
+      background: linear-gradient(135deg, rgba(34,211,238,.95), rgba(96,165,250,.95));
+      border:0; color:#001018;
+      padding:10px 14px;
+      border-radius:12px;
+      font-weight:700;
+      cursor:pointer;
+    }
+    button.secondary{
+      background: transparent;
+      border:1px solid var(--border);
+      color:var(--text);
+      font-weight:600;
+    }
+    .pill{font-size:12px; color:var(--muted)}
+    .status{margin-left:auto; font-size:13px; color:var(--muted)}
+    table{
+      width:100%;
+      border-collapse: collapse;
+      margin-top:16px;
+      overflow:hidden;
+      border-radius:12px;
+      border:1px solid var(--border);
+    }
+    th, td{
+      padding:10px;
+      border-bottom:1px solid rgba(148,163,184,.16);
+      vertical-align:top;
+      font-size:13px;
+    }
+    th{background: rgba(2,6,23,.45); text-align:left; color:rgba(226,232,240,.85);}
+    tr:hover td{background: rgba(2,6,23,.25);}
+    .tag-ok{color:var(--ok); font-weight:700;}
+    .tag-bad{color:var(--bad); font-weight:700;}
+    .foot{margin-top:10px; color:var(--muted); font-size:12px;}
+    a{color:var(--accent); text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>批次地址 → 經緯度轉換</h1>
+      <p class="sub">
+        每行一筆地址，按下「開始轉換」後會呼叫後端 API，結果以表格呈現，並可下載 CSV。<br/>
+        建議一次不要超過 50 筆（免費服務會限流）。
+      </p>
+
+      <textarea id="input" placeholder="例：&#10;台北市中正區羅斯福路四段1號&#10;新北市板橋區文化路一段188號&#10;高雄市前鎮區中山二路2號"></textarea>
+
+      <div class="row">
+        <button id="run">開始轉換</button>
+        <button class="secondary" id="demo">填入範例</button>
+        <button class="secondary" id="clear">清空</button>
+        <button class="secondary" id="download" disabled>下載 CSV</button>
+        <span class="status" id="status">待命</span>
+      </div>
+
+      <table id="table" style="display:none">
+        <thead>
+          <tr>
+            <th style="width:36%">地址</th>
+            <th style="width:14%">緯度</th>
+            <th style="width:14%">經度</th>
+            <th style="width:16%">狀態</th>
+            <th style="width:20%">匹配結果</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+
+      <div class="foot">
+        資料來源：OpenStreetMap Nominatim（請勿用於高頻商業大量呼叫）。
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    let lastRows = [];
+
+    function setStatus(text){ $("status").textContent = text; }
+
+    function toCSV(rows){
+      const header = ["address","lat","lng","status","matched_name"];
+      const escape = (v) => `"${String(v ?? "").replaceAll('"','""')}"`;
+      const lines = [header.join(",")];
+      for(const r of rows){
+        lines.push([
+          escape(r.address),
+          escape(r.lat),
+          escape(r.lng),
+          escape(r.status),
+          escape(r.matched_name),
+        ].join(","));
+      }
+      return "\uFEFF" + lines.join("\n"); // UTF-8 BOM，Excel 友善
+    }
+
+    function render(rows){
+      lastRows = rows;
+      const tbody = $("tbody");
+      tbody.innerHTML = "";
+      for(const r of rows){
+        const tr = document.createElement("tr");
+        const ok = r.status === "OK";
+        tr.innerHTML = `
+          <td>${r.address}</td>
+          <td>${r.lat ?? ""}</td>
+          <td>${r.lng ?? ""}</td>
+          <td class="${ok ? "tag-ok" : "tag-bad"}">${r.status}</td>
+          <td>${r.matched_name ?? ""}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+      $("table").style.display = rows.length ? "" : "none";
+      $("download").disabled = rows.length === 0;
+    }
+
+    async function run(){
+      const lines = $("input").value.split("\n").map(s => s.trim()).filter(Boolean);
+      if(lines.length === 0){
+        alert("請先輸入至少一筆地址（每行一筆）");
+        return;
+      }
+
+      $("run").disabled = true;
+      setStatus(`轉換中…（共 ${lines.length} 筆）`);
+
+      try{
+        const res = await fetch("/api/geocode/batch", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({addresses: lines})
+        });
+        if(!res.ok) throw new Error("API 回應失敗：" + res.status);
+        const data = await res.json();
+        render(data);
+
+        const okCount = data.filter(x => x.status === "OK").length;
+        setStatus(`完成：成功 ${okCount} / ${data.length}`);
+      }catch(err){
+        console.error(err);
+        setStatus("發生錯誤，請看 Console");
+        alert("轉換失敗：請確認後端是否有啟動（uvicorn app:app）");
+      }finally{
+        $("run").disabled = false;
+      }
+    }
+
+    $("run").addEventListener("click", run);
+    $("demo").addEventListener("click", () => {
+      $("input").value = [
+        "台北市中正區羅斯福路四段1號",
+        "新北市板橋區文化路一段188號",
+        "高雄市前鎮區中山二路2號"
+      ].join("\n");
+    });
+    $("clear").addEventListener("click", () => {
+      $("input").value = "";
+      render([]);
+      setStatus("待命");
+    });
+
+    $("download").addEventListener("click", () => {
+      const csv = toCSV(lastRows);
+      const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "address_latlng.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>
