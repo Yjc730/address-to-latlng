@@ -115,7 +115,10 @@
       </table>
 
       <div class="foot">
-        資料來源：OpenStreetMap Nominatim（請勿用於高頻商業大量呼叫）。
+        資料來源：OpenStreetMap Nominatim｜
+        <a href="https://github.com/你的帳號/address-to-latlng-ui" target="_blank">
+          GitHub 專案
+        </a>
       </div>
     </div>
   </div>
@@ -169,6 +172,12 @@
         alert("請先輸入至少一筆地址（每行一筆）");
         return;
       }
+
+   if (lines.length > 50) {
+    alert("一次最多轉換 50 筆地址");
+    return;
+    }
+
 
       $("run").disabled = true;
       setStatus(`轉換中…（共 ${lines.length} 筆）`);
